@@ -1,13 +1,15 @@
 const nconf = require('nconf');
 const winston = require('winston');
 const validator = require('validator');
+import { Request, Response } from 'express';
 
 const meta = require('../meta');
 const plugins = require('../plugins');
 const middleware = require('../middleware');
 const helpers = require('../middleware/helpers');
 
-exports.handle404 = function handle404(req, res) {
+
+exports.handle404 = function handle404(req: Request, res: Response) {
     const relativePath = nconf.get('relative_path');
     const isClientScript = new RegExp(`^${relativePath}\\/assets\\/src\\/.+\\.js(\\?v=\\w+)?$`);
 
@@ -42,7 +44,7 @@ exports.handle404 = function handle404(req, res) {
     }
 };
 
-exports.send404 = async function (req, res) {
+exports.send404 = async function (req: Request, res: Response) {
     res.status(404);
     const path = String(req.path || '');
     if (res.locals.isAPI) {
