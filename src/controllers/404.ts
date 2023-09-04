@@ -1,12 +1,12 @@
-const nconf = require('nconf');
-const winston = require('winston');
-const validator = require('validator');
+import nconf from 'nconf';
+import winston from 'winston';
+import validator from 'validator';
 import { Request, Response } from 'express';
 
-const meta = require('../meta');
-const plugins = require('../plugins');
-const middleware = require('../middleware');
-const helpers = require('../middleware/helpers');
+import meta from '../meta';
+import plugins from '../plugins';
+import middleware from '../middleware';
+import helpers from '../middleware/helpers';
 
 
 exports.handle404 = function handle404(req: Request, res: Response) {
