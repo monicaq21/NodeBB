@@ -8,22 +8,40 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const nconf_1 = __importDefault(require("nconf"));
-const winston_1 = __importDefault(require("winston"));
-const validator_1 = __importDefault(require("validator"));
-const meta_1 = __importDefault(require("../meta"));
-const plugins_1 = __importDefault(require("../plugins"));
-const middleware_1 = __importDefault(require("../middleware"));
-const helpers_1 = __importDefault(require("../middleware/helpers"));
-exports.handle404 = function handle404(req, res) {
-    const relativePath = nconf_1.default.get('relative_path');
+exports.handle404 = exports.send404 = void 0;
+const nconf = require("nconf");
+const winston = require("winston");
+const meta = require("../meta");
+const plugins = require("../plugins");
+const middleware = require("../middleware");
+let helpers;
+function send404(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        res.status(404);
+        const path = String(req.path || '');
+        if (res.locals.isAPI) {
+            return res.json({
+                path: encodeURI(path.replace(/^\/api/, '')),
+                title: '[[global:404.title]]',
+                bodyClass: helpers.buildBodyClass(req, res),
+            });
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        yield middleware.buildHeaderAsync(req, res);
+        res.render('404', {
+            path: encodeURI(path),
+            title: '[[global:404.title]]',
+            bodyClass: helpers.buildBodyClass(req, res),
+        });
+    });
+}
+exports.send404 = send404;
+function handle404(req, res) {
+    const relativePath = String(nconf.get('relative_path'));
     const isClientScript = new RegExp(`^${relativePath}\\/assets\\/src\\/.+\\.js(\\?v=\\w+)?$`);
-    if (plugins_1.default.hooks.hasListeners('action:meta.override404')) {
-        return plugins_1.default.hooks.fire('action:meta.override404', {
+    if (plugins.hooks.hasListeners('action:meta.override404')) {
+        return plugins.hooks.fire('action:meta.override404', {
             req: req,
             res: res,
             error: {},
@@ -35,36 +53,26 @@ exports.handle404 = function handle404(req, res) {
     else if (!res.locals.isAPI && (req.path.startsWith(`${relativePath}/assets/uploads`) ||
         (req.get('accept') && !req.get('accept').includes('text/html')) ||
         req.path === '/favicon.ico')) {
-        meta_1.default.errors.log404(req.path || '');
+        meta.errors.log404(req.path || '');
         res.sendStatus(404);
     }
     else if (req.accepts('html')) {
         if (process.env.NODE_ENV === 'development') {
-            winston_1.default.warn(`Route requested but not found: ${req.url}`);
+            winston.warn(`Route requested but not found: ${req.url}`);
         }
-        meta_1.default.errors.log404(req.path.replace(/^\/api/, '') || '');
-        exports.send404(req, res);
+        meta.errors.log404(req.path.replace(/^\/api/, '') || '');
+        send404(req, res)
+            .then(() => {
+            // Handle success
+            console.log('Success');
+        })
+            .catch((error) => {
+            // Handle error
+            console.log(error);
+        });
     }
     else {
         res.status(404).type('txt').send('Not found');
     }
-};
-exports.send404 = function (req, res) {
-    return __awaiter(this, void 0, void 0, function* () {
-        res.status(404);
-        const path = String(req.path || '');
-        if (res.locals.isAPI) {
-            return res.json({
-                path: validator_1.default.escape(path.replace(/^\/api/, '')),
-                title: '[[global:404.title]]',
-                bodyClass: helpers_1.default.buildBodyClass(req, res),
-            });
-        }
-        yield middleware_1.default.buildHeaderAsync(req, res);
-        yield res.render('404', {
-            path: validator_1.default.escape(path),
-            title: '[[global:404.title]]',
-            bodyClass: helpers_1.default.buildBodyClass(req, res),
-        });
-    });
-};
+}
+exports.handle404 = handle404;
